@@ -1,29 +1,27 @@
 package checks
 
-import (
-	"slices"
-)
+import set "github.com/deckarep/golang-set/v3"
 
 var (
-	resCategories = []string{"Restricted", "Prohibited"}
-	statuses      = []string{"I", "U", "D"}
-	resTypes      = []string{"Declaration", "Prohibition", "Authorization", "Inspection", "Documentation"}
+	resCategories = set.NewSet("Restricted", "Prohibited")
+	statuses      = set.NewSet("I", "U", "D")
+	resTypes      = set.NewSet("Declaration", "Prohibition", "Authorization", "Inspection", "Documentation")
 )
 
 func CheckValidResConventions(
-	conventions []string,
+	conventions set.Set[string],
 	convention string,
 ) bool {
-	return slices.Contains(conventions, convention)
+	return conventions.ContainsOne(convention)
 }
 
 func CheckValidGovPartnerAgency(
-	agencies []string,
+	agencies set.Set[string],
 	agency string,
 ) bool {
-	return slices.Contains(agencies, agency)
+	return agencies.ContainsOne(agency)
 }
 
 func CheckValidResCategory(category string) bool {
-	return slices.Contains(resCategories, category)
+	return resCategories.ContainsOne(category)
 }

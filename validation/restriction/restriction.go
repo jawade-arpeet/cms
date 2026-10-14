@@ -4,6 +4,8 @@ import (
 	"cms/validation/checks"
 	"cms/validation/issue"
 	"fmt"
+
+	set "github.com/deckarep/golang-set/v3"
 )
 
 func Validate(
@@ -14,61 +16,124 @@ func Validate(
 	conventions []string,
 	records []ImportResExcelRow,
 ) []issue.Issue {
+	seenUniqueKeys := set.NewSet[string]()
+	seenRowKeys := set.NewSet[string]()
+	taxableHSCodeSet := set.NewSet(taxableHSCodes...)
+	agencySet := set.NewSet(agencies...)
+	conventionSet := set.NewSet(conventions...)
+
 	scriptRef := fmt.Sprintf("%s_%s", countryISO2, contentType)
 
-	invalidHSCode := issue.New("import_hscode", issue.SevertityError)
-	invalidConvention := issue.New("conventions", issue.SevertityError)
-	invalidCategory := issue.New("restriction_category", issue.SevertityError)
-	invalidStatus := issue.New("status", issue.SevertityError)
-	invalidUniqueKey := issue.New("unique_key", issue.SevertityError)
-	invalidAgency := issue.New("other_or_partner_governing_agency", issue.SevertityError)
-	invalidEffectiveAt := issue.New("effective_at", issue.SevertityError)
+	duplicateRowIssue := issue.New(
+		issue.SevertityError,
+		"row",
+		"found duplicate rows",
+	)
+
+	invalidHSCodeIssue := issue.New(
+		issue.SevertityError,
+		"import_hscode",
+		"found invalid hs codes",
+	)
+
+	invalidConventionIssue := issue.New(
+		issue.SevertityError,
+		"conventions",
+		"found invalid conventions",
+	)
+
+	invalidCategoryIssue := issue.New(
+		issue.SevertityError,
+		"restriction_category",
+		"found invalid restriction category",
+	)
+
+	invalidAgencyIssue := issue.New(
+		issue.SevertityError,
+		"other_or_partner_governing_agency",
+		"found invalid governing partner agencies",
+	)
+
+	invalidStatusIssue := issue.New(
+		issue.SevertityError,
+		"status",
+		"found invalid status codes",
+	)
+
+	invalidUniqueKeyIssue := issue.New(
+		issue.SevertityError,
+		"unique_key",
+		"found invalid unique key",
+	)
+
+	duplicateUniqueKeyIssue := issue.New(
+		issue.SevertityError,
+		"unique_key",
+		"found duplicate unique values",
+	)
+
+	invalidEffectiveAtIssue := issue.New(issue.SevertityError, "effective_at", "found invalid effective at values")
 
 	for idx, rec := range records {
 		rowIdx := idx + 2
+		rowKey := fmt.Sprintf("%#v", rec)
 
-		if !checks.CheckValidTaxableHSCode(taxableHSCodes, rec.ImportHSCode) {
-			invalidHSCode.Add(rowIdx, rec.ImportHSCode)
+		if checks.CheckDuplicateRows(seenRowKeys, rowKey) {
+			duplicateRowIssue.Add(rowIdx, "")
+		} else {
+			seenRowKeys.Add(rowKey)
 		}
 
-		if !checks.CheckValidResConventions(conventions, rec.Conventions) {
-			invalidConvention.Add(rowIdx, rec.Conventions)
+		if !checks.CheckValidTaxableHSCode(taxableHSCodeSet, rec.ImportHSCode) {
+			invalidHSCodeIssue.Add(rowIdx, rec.ImportHSCode)
+		}
+
+		if !checks.CheckValidResConventions(conventionSet, rec.Conventions) {
+			invalidConventionIssue.Add(rowIdx, rec.Conventions)
 		}
 
 		if !checks.CheckValidResCategory(rec.RestrictionCategory) {
-			invalidCategory.Add(rowIdx, rec.RestrictionCategory)
+			invalidCategoryIssue.Add(rowIdx, rec.RestrictionCategory)
 		}
 
-		if !checks.CheckValidGovPartnerAgency(agencies, rec.GovPartnerAgency) {
-			invalidAgency.Add(rowIdx, rec.GovPartnerAgency)
+		if !checks.CheckValidGovPartnerAgency(agencySet, rec.GovPartnerAgency) {
+			invalidAgencyIssue.Add(rowIdx, rec.GovPartnerAgency)
 		}
 
 		if !checks.CheckValidStatus(rec.Status) {
-			invalidStatus.Add(rowIdx, rec.Status)
+			invalidStatusIssue.Add(rowIdx, rec.Status)
 		}
 
 		if !checks.CheckUniqueKey(rec.UniqueKey, rec.Status, scriptRef) {
-			invalidUniqueKey.Add(rowIdx, rec.UniqueKey)
+			invalidUniqueKeyIssue.Add(rowIdx, rec.UniqueKey)
+		}
+
+		if (rec.Status == "U" || rec.Status == "D") && (checks.CheckDuplicateUniqueKeys(seenUniqueKeys, rec.UniqueKey)) {
+			duplicateUniqueKeyIssue.Add(rowIdx, rec.UniqueKey)
+		} else {
+			seenUniqueKeys.Add(rec.UniqueKey)
 		}
 
 		if !checks.CheckValidEffectiveAt(rec.EffectiveAt, rec.ExpiryAt) {
-			invalidEffectiveAt.Add(rowIdx, rec.UniqueKey)
+			invalidEffectiveAtIssue.Add(rowIdx, rec.UniqueKey)
 		}
 	}
 
 	issues := []issue.Issue{
-		*invalidHSCode,
-		*invalidConvention,
-		*invalidCategory,
-		*invalidStatus,
-		*invalidUniqueKey,
-		*invalidAgency,
-		*invalidEffectiveAt,
+		*invalidHSCodeIssue,
+		*invalidConventionIssue,
+		*invalidCategoryIssue,
+		*invalidStatusIssue,
+		*invalidUniqueKeyIssue,
+		*duplicateUniqueKeyIssue,
+		*duplicateRowIssue,
+		*invalidAgencyIssue,
+		*invalidEffectiveAtIssue,
 	}
 
 	result := make([]issue.Issue, 0, len(issues))
 	for _, validationIssue := range issues {
-		if len(validationIssue.Indexes) > 0 {
+		if validationIssue.Indexes.Cardinality() > 0 {
 			result = append(result, validationIssue)
 		}
 	}

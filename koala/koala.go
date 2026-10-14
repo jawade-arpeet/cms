@@ -1,6 +1,9 @@
 package koala
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"strings"
@@ -56,4 +59,41 @@ func ReadExcel[T any](body io.ReadCloser) ([]T, error) {
 	}
 
 	return nil, nil
+}
+
+// ExportGzipXML returns gzip-compressed XML under the nonempty root xmlName.
+// Rows use their XML names or Go type names.
+func ExportGzipXML[T any](rows []T, xmlName string) ([]byte, error) {
+	if xmlName == "" {
+		return nil, fmt.Errorf("xml name cannot be empty string")
+	}
+
+	var output bytes.Buffer
+	compressed := gzip.NewWriter(&output)
+	defer compressed.Close()
+	if _, err := io.WriteString(compressed, xml.Header); err != nil {
+		return nil, fmt.Errorf("failed to export XML header: %w", err)
+	}
+
+	encoder := xml.NewEncoder(compressed)
+	encoder.Indent("", "    ")
+	root := xml.StartElement{Name: xml.Name{Local: xmlName}}
+
+	if err := encoder.EncodeToken(root); err != nil {
+		return nil, fmt.Errorf("failed to export XML root: %w", err)
+	}
+	if err := encoder.Encode(rows); err != nil {
+		return nil, fmt.Errorf("failed to export XML rows: %w", err)
+	}
+	if err := encoder.EncodeToken(root.End()); err != nil {
+		return nil, fmt.Errorf("failed to export XML root: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finish XML export: %w", err)
+	}
+	if err := compressed.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finish gzip export: %w", err)
+	}
+
+	return output.Bytes(), nil
 }

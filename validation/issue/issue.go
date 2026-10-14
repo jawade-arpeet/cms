@@ -2,8 +2,9 @@ package issue
 
 import (
 	"fmt"
-	"slices"
 	"strings"
+
+	set "github.com/deckarep/golang-set/v3"
 )
 
 type Severity string
@@ -15,36 +16,39 @@ const (
 
 type Issue struct {
 	Key      string
-	Values   []string
-	Indexes  []int
+	Message  string
+	Values   set.Set[string]
+	Indexes  set.Set[int]
 	Severity Severity
 }
 
-func New(key string, severity Severity) *Issue {
+func New(severity Severity, key string, msg string) *Issue {
 	return &Issue{
 		Key:      key,
-		Values:   []string{},
-		Indexes:  []int{},
+		Values:   set.NewSet[string](),
+		Indexes:  set.NewSet[int](),
 		Severity: severity,
+		Message:  msg,
 	}
 }
 
 func (i *Issue) Error() string {
-	return fmt.Sprintf(
+	details := fmt.Sprintf(
 		"found %d invalid %s values %s at indexes %v",
-		len(i.Indexes),
+		len(i.Indexes.ToSlice()),
 		i.Key,
-		strings.Join(i.Values, ", "),
+		strings.Join(i.Values.ToSlice(), ", "),
 		i.Indexes,
 	)
+
+	if i.Message != "" {
+		return fmt.Sprintf("%s: %s", details, i.Message)
+	}
+
+	return details
 }
 
 func (i *Issue) Add(idx int, val string) {
-	if !slices.Contains(i.Indexes, idx) {
-		i.Indexes = append(i.Indexes, idx)
-	}
-
-	if !slices.Contains(i.Values, val) {
-		i.Values = append(i.Values, val)
-	}
+	i.Indexes.Add(idx)
+	i.Values.Add(val)
 }

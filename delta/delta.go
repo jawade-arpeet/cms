@@ -10,31 +10,17 @@ type Delta[T any] struct {
 	Deleted  []T
 }
 
-type ImportResDeltaRow struct {
-	restriction.ImportResExcelRow
-	IsActive     bool `xml:"is_active"`
-	IsRestricted bool `xml:"is_restricted"`
-}
-
-func newImportResDeltaRow(row restriction.ImportResExcelRow) ImportResDeltaRow {
-	return ImportResDeltaRow{
-		ImportResExcelRow: row,
-		IsActive:          true,
-		IsRestricted:      true,
-	}
-}
-
 func GenerateResDelta(
 	countryISO2 string,
 	contentType string,
 	records []restriction.ImportResExcelRow,
-) *Delta[ImportResDeltaRow] {
-	inserted := make([]ImportResDeltaRow, 0, len(records))
-	updated := make([]ImportResDeltaRow, 0, len(records))
-	deleted := make([]ImportResDeltaRow, 0, len(records))
+) *Delta[ImportResXMLRow] {
+	inserted := make([]ImportResXMLRow, 0, len(records))
+	updated := make([]ImportResXMLRow, 0, len(records))
+	deleted := make([]ImportResXMLRow, 0, len(records))
 
 	for _, rec := range records {
-		deltaRow := newImportResDeltaRow(rec)
+		deltaRow := NewImportResDeltaRow(rec)
 
 		switch deltaRow.Status {
 		case "I":
@@ -46,9 +32,5 @@ func GenerateResDelta(
 		}
 	}
 
-	return &Delta[ImportResDeltaRow]{Inserted: inserted, Updated: updated, Deleted: deleted}
+	return &Delta[ImportResXMLRow]{Inserted: inserted, Updated: updated, Deleted: deleted}
 }
-
-func GenerateInsertedDelta() {}
-func GenerateUpdatedDelta()  {}
-func GenerateDeletedDelta()  {}

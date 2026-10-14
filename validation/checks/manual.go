@@ -1,12 +1,13 @@
 package checks
 
 import (
-	"slices"
 	"strings"
+
+	set "github.com/deckarep/golang-set/v3"
 )
 
 func CheckValidStatus(status string) bool {
-	return slices.Contains(statuses, status)
+	return statuses.Contains(status)
 }
 
 func CheckUniqueKey(
@@ -22,4 +23,8 @@ func CheckUniqueKey(
 	default:
 		return true
 	}
+}
+
+func CheckDuplicateUniqueKeys(seenUniqueKeys set.Set[string], key string) bool {
+	return seenUniqueKeys.ContainsOne(key)
 }

@@ -1,15 +1,16 @@
 package checks
 
 import (
-	"slices"
 	"time"
+
+	set "github.com/deckarep/golang-set/v3"
 )
 
 func CheckValidTaxableHSCode(
-	taxableHS []string,
+	taxableHS set.Set[string],
 	hsCode string,
 ) bool {
-	return slices.Contains(taxableHS, hsCode)
+	return taxableHS.Contains(hsCode)
 }
 
 func CheckValidEffectiveAt(
@@ -27,4 +28,8 @@ func CheckValidEffectiveAt(
 	}
 
 	return effTime.Before(expTime)
+}
+
+func CheckDuplicateRows(seenRowKeys set.Set[string], row string) bool {
+	return seenRowKeys.ContainsOne(row)
 }
