@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"cms/countries"
 	"time"
 
 	set "github.com/deckarep/golang-set/v3"
@@ -32,4 +33,8 @@ func CheckValidEffectiveAt(
 
 func CheckDuplicateRows(seenRowKeys set.Set[string], row string) bool {
 	return seenRowKeys.ContainsOne(row)
+}
+
+func CheckValidISO2(countryISO2 string) bool {
+	return countries.IsValidISO2(countryISO2)
 }

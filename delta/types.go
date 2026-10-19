@@ -43,3 +43,20 @@ func NewImportResDeltaRow(row restriction.ImportResExcelRow) ImportResXMLRow {
 		IsRestricted:        true,
 	}
 }
+
+type Duty struct {
+	Name                    string   `json:"duty_name"`
+	Duty                    string   `json:"duty"`
+	ApplicableCountries     []string `json:"applicable_countries"`
+	ApplicableCountriesDesc string   `json:"applicable_countries_description"`
+	ExcludingCountries      []struct {
+		Code        string `json:"code"`
+		Description string `json:"description"`
+	} `json:"excluding_countries"`
+}
+
+type ImportTariffDeltaXMLRow struct {
+	HSCode              string `xml:"hs_code"`
+	StandardImportDty   string `xml:"standard_import_duty"`
+	LCStandardImportDty string `xml:"lc_standard_import_duty"`
+}

@@ -36,6 +36,30 @@ func Validate(
 		"found invalid hs codes",
 	)
 
+	invalidImportingCountryIssue := issue.New(
+		issue.SevertityError,
+		"importing_country",
+		"found invalid importing country",
+	)
+
+	invalidOriginCountryIssue := issue.New(
+		issue.SevertityError,
+		"country_of_origin",
+		"found invalid country of origin",
+	)
+
+	invalidExportingCountryIssue := issue.New(
+		issue.SevertityError,
+		"exporting_country",
+		"found invalid exporting country",
+	)
+
+	invalidExemptedCountryIssue := issue.New(
+		issue.SevertityError,
+		"exempted_country",
+		"found invalid exempted country",
+	)
+
 	invalidConventionIssue := issue.New(
 		issue.SevertityError,
 		"conventions",
@@ -88,6 +112,30 @@ func Validate(
 			invalidHSCodeIssue.Add(rowIdx, rec.ImportHSCode)
 		}
 
+		for _, country := range rec.ImportingCountry {
+			if !checks.CheckValidISO2(country) {
+				invalidImportingCountryIssue.Add(rowIdx, country)
+			}
+		}
+
+		for _, country := range rec.ExportingCountry {
+			if !checks.CheckValidISO2(country) {
+				invalidExportingCountryIssue.Add(rowIdx, country)
+			}
+		}
+
+		for _, country := range rec.CountryOfOrigin {
+			if !checks.CheckValidISO2(country) {
+				invalidOriginCountryIssue.Add(rowIdx, country)
+			}
+		}
+
+		for _, country := range rec.ExemptedCountry {
+			if !checks.CheckValidISO2(country) {
+				invalidExemptedCountryIssue.Add(rowIdx, country)
+			}
+		}
+
 		if !checks.CheckValidResConventions(conventionSet, rec.Conventions) {
 			invalidConventionIssue.Add(rowIdx, rec.Conventions)
 		}
@@ -121,6 +169,10 @@ func Validate(
 
 	issues := []issue.Issue{
 		*invalidHSCodeIssue,
+		*invalidImportingCountryIssue,
+		*invalidExportingCountryIssue,
+		*invalidOriginCountryIssue,
+		*invalidExemptedCountryIssue,
 		*invalidConventionIssue,
 		*invalidCategoryIssue,
 		*invalidStatusIssue,
